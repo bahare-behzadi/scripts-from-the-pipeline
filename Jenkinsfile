@@ -14,25 +14,55 @@ pipeline {
     stages {
         stage('Make executable') {
             steps {
-                bat 'echo "This is a Windows environment, no chmod needed"'
+                // No equivalent chmod needed on Windows
+                echo 'This is a Windows environment, no chmod needed'
             }
         }
         stage('Relative path') {
             steps {
-                bat 'powershell -Command "./scripts/fibonacci.ps1 ${env.NUMBER}"'
+                script {
+                    try {
+                        bat "powershell -Command \"./scripts/fibonacci.ps1 ${params.NUMBER}\""
+                    } catch (Exception e) {
+                        error "Error executing the script with relative path: ${e.message}"
+                    }
+                }
             }
         }
         stage('Full path') {
             steps {
-                bat "powershell -Command \"${env.WORKSPACE}/scripts/fibonacci.ps1 ${env.NUMBER}\""
+                script {
+                    try {
+                        bat "powershell -Command \"${env.WORKSPACE}/scripts/fibonacci.ps1 ${params.NUMBER}\""
+                    } catch (Exception e) {
+                        error "Error executing the script with full path: ${e.message}"
+                    }
+                }
             }
         }
         stage('Change directory') {
             steps {
-                dir("${env.WORKSPACE}/scripts") {
-                    bat 'powershell -Command "./fibonacci.ps1 ${env.NUMBER}"'
+                script {
+                    dir("${env.WORKSPACE}/scripts") {
+                        try {
+                            bat "powershell -Command \"./fibonacci.ps1 ${params.NUMBER}\""
+                        } catch (Exception e) {
+                            error "Error executing the script in changed directory: ${e.message}"
+                        }
+                    }
                 }
             }
+        }
+    }
+    post {
+        always {
+            echo "This step will run after all other steps have finished. It will always run, even if the build status is not SUCCESS."
+        }
+        failure {
+            echo "The build has failed."
+        }
+        success {
+            echo "The build was successful."
         }
     }
 }
